@@ -1,8 +1,20 @@
 import os
 import glob
+import time
 import google.oauth2.credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+
+VIDEOS_TITLES = [
+    "GK Quiz Q{s}-Q{e} | Aaj ke Sawaal | GK Adda #{n}",
+]
+
+TAGS = [
+    "gk", "general knowledge", "current affairs",
+    "gk in hindi", "gk questions", "gk adda",
+    "ssc gk", "upsc gk", "railway gk",
+    "gk shorts", "gk quiz", "daily gk"
+]
 
 def get_youtube_service():
     creds = google.oauth2.credentials.Credentials(
@@ -19,12 +31,7 @@ def upload_video(youtube, video_file, title, description):
         "snippet": {
             "title": title,
             "description": description,
-            "tags": [
-                "gk", "general knowledge", "current affairs",
-                "gk in hindi", "gk questions", "gk adda",
-                "ssc gk", "upsc gk", "railway gk",
-                "gk shorts", "gk quiz", "daily gk"
-            ],
+            "tags": TAGS,
             "categoryId": "27",
             "defaultLanguage": "hi"
         },
@@ -52,33 +59,40 @@ def upload_video(youtube, video_file, title, description):
     print(f"✅ Video ID: {response['id']}")
     return response['id']
 
-# Get day number
+# Day calculation
 day = int(os.environ.get("DAY_OFFSET", 1))
-start_q = (day - 1) * 25 + 1
+actual_day = ((day - 1) % 60) + 1
+base_q_num = ((actual_day - 1) * 25) + 1
 
-# Upload all 5 shorts
+print(f"Day: {day} | Actual Day: {actual_day} | Starting Q{base_q_num}")
+
 youtube = get_youtube_service()
-
 video_files = sorted(glob.glob("output_videos/short_*.mp4"))
 
 for i, video_file in enumerate(video_files):
     short_num = i + 1
-    q_start = start_q + (i * 5)
+    q_start = base_q_num + (i * 5)
     q_end = q_start + 4
+    video_num = (actual_day - 1) * 5 + short_num
 
-    title = f"GK Quiz 🧠 Q{q_start}-Q{q_end} | सामान्य ज्ञान | GK Adda #{day*5 - 5 + short_num}"
+    title = f"GK Quiz Q{q_start}-Q{q_end} | Aaj ke Sawaal | GK Adda #{video_num}"
 
-    description = f"""Q{q_start} से Q{q_end} तक के कठिन प्रश्न!
+    description = f"""Q{q_start} se Q{q_end} tak ke tough sawaal!
 
-🧠 सामान्य ज्ञान | 📰 करंट अफेयर्स | 🌍 अजब दुनिया
+🧠 Samanya Gyan | 📰 Current Affairs | 🌍 Ajab Duniya
 
-✅ रोज़ 5 नए Shorts — GK Adda पर!
-🔔 Subscribe करें और Bell Icon दबाएं!
+✅ Roz 5 naye Shorts — GK Adda par!
+🔔 Subscribe karein aur Bell Icon dabayein!
 
-#GKAdda #GKinHindi #CurrentAffairs #GKShorts #SSCGK #UPSCGK #RailwayGK #DailyGK #GKQuiz #GeneralKnowledge
+#GKAdda #GKinHindi #CurrentAffairs #GKShorts #SSCGK #UPSCGK #RailwayGK #DailyGK #GKQuiz
 """
 
-    print(f"Uploading Short #{short_num}: Q{q_start}-Q{q_end}")
+    print(f"\nUploading Short #{short_num}: Q{q_start}-Q{q_end}")
     upload_video(youtube, video_file, title, description)
+    
+    # Wait between uploads
+    if short_num < len(video_files):
+        print("Waiting 15 seconds...")
+        time.sleep(15)
 
 print("\n✅ All 5 shorts uploaded to GK Adda!")
