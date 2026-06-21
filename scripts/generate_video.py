@@ -3,133 +3,93 @@ from PIL import Image, ImageDraw, ImageFont
 import subprocess
 import os
 import json
-import glob
 
 # Load questions
 with open('data/questions.json', 'r', encoding='utf-8') as f:
     QUESTIONS = json.load(f)
 
-def find_hindi_font():
-    font_paths = [
-        "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf",
-        "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
-        "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
-        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    ]
-    # Find any available noto font
-    all_fonts = glob.glob("/usr/share/fonts/**/*.ttf", recursive=True)
-    noto_fonts = [f for f in all_fonts if 'Noto' in f and 'Devanagari' in f]
-    if noto_fonts:
-        print(f"Found Devanagari font: {noto_fonts[0]}")
-        return noto_fonts[0]
-    noto_any = [f for f in all_fonts if 'Noto' in f]
-    if noto_any:
-        print(f"Found Noto font: {noto_any[0]}")
-        return noto_any[0]
-    for path in font_paths:
-        if os.path.exists(path):
-            return path
-    print("No Hindi font found! Using default.")
-    return None
-
-def create_question_image(q_num, question, answer, q_type, filename):
-    img = Image.new('RGB', (1080, 1920), color='#0D1117')
+def create_short_image(short_num, questions, q_start, filename):
+    # 1080x1920 portrait
+    img = Image.new('RGB', (1080, 1920), color='#0A0A2E')
     draw = ImageDraw.Draw(img)
 
-    # Colors by type
-    if q_type == "gk":
-        bg_color = (13, 71, 161)
-        badge_text = "GK - सामान्य ज्ञान"
-        badge_color = "#1565C0"
-    elif q_type == "current":
-        bg_color = (27, 94, 32)
-        badge_text = "करंट अफेयर्स"
-        badge_color = "#1B5E20"
-    else:
-        bg_color = (74, 20, 140)
-        badge_text = "अजब दुनिया"
-        badge_color = "#4A148C"
-
-    # Background gradient
-    for i in range(1920):
-        factor = 1 - (i / 1920) * 0.6
-        r = int(bg_color[0] * factor * 0.4)
-        g = int(bg_color[1] * factor * 0.4)
-        b = int(bg_color[2] * factor * 0.4)
-        draw.line([(0, i), (1080, i)], fill=(max(0,r), max(0,g), max(0,b)))
-
-    # Load Hindi font
-    font_path = find_hindi_font()
+    # Find font
+    import glob
+    all_fonts = glob.glob("/usr/share/fonts/**/*.ttf", recursive=True)
+    
+    # Try Devanagari first
+    hindi_fonts = [f for f in all_fonts if 'Devanagari' in f and 'Bold' in f]
+    if not hindi_fonts:
+        hindi_fonts = [f for f in all_fonts if 'Devanagari' in f]
+    if not hindi_fonts:
+        hindi_fonts = [f for f in all_fonts if 'Noto' in f and 'Bold' in f]
+    if not hindi_fonts:
+        hindi_fonts = [f for f in all_fonts if 'Noto' in f]
+    
+    font_path = hindi_fonts[0] if hindi_fonts else None
+    print(f"Using font: {font_path}")
 
     try:
         if font_path:
-            font_large = ImageFont.truetype(font_path, 52)
-            font_medium = ImageFont.truetype(font_path, 42)
-            font_small = ImageFont.truetype(font_path, 38)
-            font_badge = ImageFont.truetype(font_path, 30)
-            font_num = ImageFont.truetype(font_path, 52)
+            font_title = ImageFont.truetype(font_path, 48)
+            font_q = ImageFont.truetype(font_path, 36)
+            font_a = ImageFont.truetype(font_path, 34)
+            font_header = ImageFont.truetype(font_path, 42)
         else:
             raise Exception("No font")
-    except Exception as e:
-        print(f"Font error: {e}")
-        font_large = ImageFont.load_default()
-        font_medium = font_large
-        font_small = font_large
-        font_badge = font_large
-        font_num = font_large
+    except:
+        font_title = ImageFont.load_default()
+        font_q = font_title
+        font_a = font_title
+        font_header = font_title
 
-    # Badge background
-    draw.rounded_rectangle([60, 100, 700, 185], radius=25, fill=badge_color)
-    draw.text((90, 122), badge_text, font=font_badge, fill="white")
+    # Header bar
+    draw.rectangle([0, 0, 1080, 130], fill="#1A1A5E")
+    draw.text((50, 35), "🧠 आज के GK सवाल", font=font_header, fill="#FFD700")
+    draw.text((700, 40), f"GK Adda", font=font_q, fill="#FFD700")
 
-    # Question number circle
-    draw.ellipse([60, 210, 200, 350], fill="#FFD700")
-    draw.text((82, 252), f"Q{q_num}", font=font_num, fill="#0D1117")
-
-    # Question text wrap
-    def wrap_text(text, max_chars=18):
-        words = text.split(' ')
-        lines = []
-        current = ""
-        for word in words:
-            if len(current + word) > max_chars:
-                if current:
-                    lines.append(current.strip())
-                current = word + " "
-            else:
-                current += word + " "
-        if current:
-            lines.append(current.strip())
-        return lines
-
-    # Draw question
-    q_lines = wrap_text(question, 18)
-    y = 390
-    for line in q_lines[:7]:
-        draw.text((60, y), line, font=font_large, fill="white")
-        y += 78
-
-    # Divider
-    draw.rectangle([60, y+20, 1020, y+25], fill="#FFD700")
-
-    # Answer label
-    draw.text((60, y+50), "✅ उत्तर:", font=font_small, fill="#FFD700")
-
-    # Answer text
-    a_lines = wrap_text(answer, 22)
-    y_ans = y + 110
-    for line in a_lines[:4]:
-        draw.text((60, y_ans), line, font=font_medium, fill="#00E676")
-        y_ans += 62
+    # Draw 5 questions
+    y = 160
+    colors = ["#FFD700", "#00E676", "#FF6B6B", "#64B5F6", "#FF9800"]
+    
+    for i, q in enumerate(questions):
+        q_num = q_start + i
+        
+        # Question background
+        draw.rounded_rectangle([30, y, 1050, y+220], radius=20, fill="#1A1A3E")
+        
+        # Q number badge
+        draw.ellipse([45, y+15, 115, y+85], fill=colors[i])
+        draw.text((58, y+28), f"Q{q_num}", font=font_q, fill="#0A0A2E")
+        
+        # Question text
+        q_text = q["q"]
+        if len(q_text) > 35:
+            q_text = q_text[:35] + "..."
+        draw.text((130, y+20), q_text, font=font_q, fill="white")
+        
+        # Answer
+        draw.text((130, y+90), "✅ " + q["a"][:45], font=font_a, fill=colors[i])
+        
+        # Type badge
+        type_text = "GK" if q["type"] == "gk" else ("CA" if q["type"] == "current" else "FACT")
+        draw.rounded_rectangle([900, y+150, 1040, y+200], radius=10, fill=colors[i])
+        draw.text((920, y+158), type_text, font=font_q, fill="#0A0A2E")
+        
+        y += 240
 
     # Bottom bar
-    draw.rectangle([0, 1820, 1080, 1920], fill="#FFD700")
-    draw.text((350, 1845), "GK Adda", font=font_large, fill="#0D1117")
+    draw.rectangle([0, 1850, 1080, 1920], fill="#FFD700")
+    draw.text((350, 1860), "Subscribe करें! 🔔", font=font_q, fill="#0A0A2E")
 
     img.save(filename)
-    print(f"✅ Image: {filename}")
+    print(f"✅ Image saved: {filename}")
 
-def generate_audio(text, filename):
+def generate_audio(questions, q_start, filename):
+    text = "आज के जीके सवाल। "
+    for i, q in enumerate(questions):
+        q_num = q_start + i
+        text += f"सवाल {q_num}। {q['q']}। जवाब। {q['a']}। "
     tts = gTTS(text=text, lang='hi', slow=False)
     tts.save(filename)
 
@@ -149,18 +109,16 @@ def create_video(image_file, audio_file, output_file):
         output_file
     ])
 
-# Calculate questions for today
+# Day calculation
 day = int(os.environ.get("DAY_OFFSET", 1))
 start_idx = ((day - 1) * 25) % len(QUESTIONS)
+base_q_num = ((day - 1) * 25) + 1
 
-# Get today's 25 questions in order
+# Get 25 questions in order
 today_questions = []
 for i in range(25):
     idx = (start_idx + i) % len(QUESTIONS)
     today_questions.append(QUESTIONS[idx])
-
-# Base question number
-base_q_num = ((day - 1) * 25) + 1
 
 os.makedirs("output_videos", exist_ok=True)
 
@@ -169,38 +127,16 @@ for short_num in range(5):
     short_questions = today_questions[short_num * 5: (short_num + 1) * 5]
     q_start = base_q_num + (short_num * 5)
 
-    print(f"\n--- Short #{short_num+1} | Q{q_start} to Q{q_start+4} ---")
+    print(f"\n--- Short #{short_num+1} | Q{q_start}-Q{q_start+4} ---")
 
-    video_files = []
+    img_file = f"short_{short_num+1}.jpg"
+    audio_file = f"short_{short_num+1}.mp3"
+    output_file = f"output_videos/short_{short_num+1}.mp4"
 
-    for i, q in enumerate(short_questions):
-        q_num = q_start + i
-        img_file = f"q_{q_num}.jpg"
-        audio_file = f"q_{q_num}.mp3"
-        video_file = f"q_{q_num}.mp4"
+    create_short_image(short_num+1, short_questions, q_start, img_file)
+    generate_audio(short_questions, q_start, audio_file)
+    create_video(img_file, audio_file, output_file)
 
-        create_question_image(q_num, q["q"], q["a"], q["type"], img_file)
+    print(f"✅ Short #{short_num+1} done!")
 
-        speak_text = f"प्रश्न {q_num}। {q['q']}। उत्तर है। {q['a']}"
-        generate_audio(speak_text, audio_file)
-
-        create_video(img_file, audio_file, video_file)
-        video_files.append(video_file)
-
-    # Merge into 1 short
-    concat_file = f"concat_{short_num}.txt"
-    with open(concat_file, "w") as f:
-        for vf in video_files:
-            f.write(f"file '{vf}'\n")
-
-    output_short = f"output_videos/short_{short_num+1}.mp4"
-    subprocess.run([
-        "ffmpeg", "-f", "concat", "-safe", "0",
-        "-i", concat_file,
-        "-c", "copy",
-        "-y", output_short
-    ])
-
-    print(f"✅ Short #{short_num+1} ready: Q{q_start}-Q{q_start+4}")
-
-print("\n✅ All 5 shorts created!")
+print("\n✅ All 5 shorts ready!")
