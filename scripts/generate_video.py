@@ -34,11 +34,18 @@ def create_question_image(q_num, question, answer, q_type, filename):
         draw.line([(0, i), (1080, i)], fill=(r, g, b))
 
     try:
-        font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 55)
-        font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 42)
-        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 38)
-        font_badge = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
-        font_num = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 55)
+    font_large = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf", 55)
+    font_medium = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf", 42)
+    font_small = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf", 38)
+    font_badge = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf", 32)
+    font_num = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf", 55)
+except:
+    try:
+        font_large = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSansDev​anagari-Bold.ttf", 55)
+        font_medium = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf", 42)
+        font_small = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf", 38)
+        font_badge = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf", 32)
+        font_num = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf", 55)
     except:
         font_large = ImageFont.load_default()
         font_medium = font_large
