@@ -1,0 +1,38 @@
+name: Daily GK Shorts Upload
+
+on:
+  schedule:
+    - cron: '30 23 * * *'  # 11:30 PM UTC = 5:00 AM IST
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install FFmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate Videos
+        env:
+          DAY_OFFSET: ${{ github.run_number }}
+        run: python scripts/generate_video.py
+
+      - name: Upload to YouTube
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          DAY_OFFSET: ${{ github.run_number }}
+        run: python scripts/upload_youtube.py
