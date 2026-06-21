@@ -2,7 +2,7 @@ name: Daily GK Shorts Upload
 
 on:
   schedule:
-    - cron: '30 23 * * *'  # 11:30 PM UTC = 5:00 AM IST
+    - cron: '30 23 * * *'
   workflow_dispatch:
 
 jobs:
@@ -20,10 +20,10 @@ jobs:
 
       - name: Install FFmpeg
         run: sudo apt-get install -y ffmpeg
-        
-        - name: Install Hindi Font
+
+      - name: Install Hindi Fonts
         run: |
-          sudo apt-get install -y fonts-noto fonts-noto-cjk
+          sudo apt-get install -y fonts-noto fonts-noto-extra
           fc-cache -fv
 
       - name: Install dependencies
