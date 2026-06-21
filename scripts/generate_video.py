@@ -130,6 +130,9 @@ def create_video(image_file, audio_file, output_file):
 # Calculate questions for today
 day = int(os.environ.get("DAY_OFFSET", 1))
 start_q = ((day - 1) * 25) % len(QUESTIONS)
+today_questions = QUESTIONS[start_q:start_q+25]
+if len(today_questions) < 25:
+    today_questions += QUESTIONS[:25-len(today_questions)]
 
 # Get today's 25 questions
 today_questions = []
